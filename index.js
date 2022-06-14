@@ -6,24 +6,31 @@ const { google } = require("googleapis")
 
 function getHigh(string) {
     
+    if(!string) return;
 
     const convertBanglaToEnglishNumber=(str)=>{
-        const numbers = {
-            "\u09E6" : 0,
-            "\u09E7" : 1,
-            "\u09E8" : 2,
-            "\u09E9" : 3,
-            "\u09EA" : 4,
-            "\u09EB" : 5,
-            "\u09EC" : 6,
-            "\u09ED" : 7,
-            "\u09EE" : 8,
-            "\u09EF" : 9
-        }
-        for (var x in numbers) {
-            str = str.replace(new RegExp(x, 'g'), numbers[x]);
-        }
-        return str;
+
+        if(!str) return;
+
+            const numbers = {
+                "\u09E6" : 0,
+                "\u09E7" : 1,
+                "\u09E8" : 2,
+                "\u09E9" : 3,
+                "\u09EA" : 4,
+                "\u09EB" : 5,
+                "\u09EC" : 6,
+                "\u09ED" : 7,
+                "\u09EE" : 8,
+                "\u09EF" : 9
+            }
+    
+           
+            for (var x in numbers) {
+                str = str.replace(new RegExp(x, 'g'), numbers[x]);
+            }
+            return str;
+        
     }
 
     const [f,l] = convertBanglaToEnglishNumber(string).split('-');
@@ -33,7 +40,7 @@ function getHigh(string) {
 
 
 
-async function* bal(){
+async function bal(){
     const auth = new google.auth.GoogleAuth({
         keyFile: "faq10-351912-d0efb4b7efa2.json",
         scopes: "https://www.googleapis.com/auth/spreadsheets"
@@ -52,9 +59,10 @@ async function* bal(){
         spreadsheetId,
     })
 
-    const startDate = '2022-5-1';
-    const endDate = '2022-5-10'
+    const startDate = '2022-2-1';
+    const endDate = '2022-3-1'
 
+    let data_f = [];
     
 
     const start_date = new Date(startDate);
@@ -62,6 +70,7 @@ async function* bal(){
 
     const nextDate = new Date(start_date)
     nextDate.setDate(start_date.getDate()+1)
+    let  lastMonth = 3;
 
     while(nextDate <= end_date){
         const Year = nextDate.getFullYear();
@@ -74,41 +83,75 @@ async function* bal(){
         const data = await start(date);
 
         data.map((value,index)=>{
-        value.push(date);
+        value.unshift(date);
+        
 
-        value[2] = getHigh(value[2]);
-        value[4] = getHigh(value[4]);
+        if(value.length>1){
+            value[2] = getHigh(value[2]);
+        }
+      
+
+        data_f.push(value)
         })
+        
     
-    
+        if(Month == lastMonth+1){
+            lastMonth++;
 
-    try{
-        const response = ( yield await googleSheets.spreadsheets.values.append({
-            auth,
-            spreadsheetId,
-            range:"Sheet1",
-            valueInputOption: "USER_ENTERED",
-            resource: {
-                values:data
+            try{
+                const response = (await googleSheets.spreadsheets.values.append({
+                    auth,
+                    spreadsheetId,
+                    range:"Sheet1",
+                    valueInputOption: "USER_ENTERED",
+                    resource: {
+                        values:data_f
+                    }
+                })).data;
+        
+                
+        
+            } catch(err){
+                console.log(err);
             }
-        })).data;
 
-        console.log(response)
+            data_f = [];
+        }
 
-    } catch(err){
-        console.log(err);
-    }
+    
 
         nextDate.setDate(nextDate.getDate()+1)
 
     }
+
+    if(data_f.length > 0){
+        try{
+            const response = (await googleSheets.spreadsheets.values.append({
+                auth,
+                spreadsheetId,
+                range:"Sheet1",
+                valueInputOption: "USER_ENTERED",
+                resource: {
+                    values:data_f
+                }
+            })).data;
+    
+            
+    
+        } catch(err){
+            console.log(err);
+        }
+
+        data_f = []
+    }
+   
 }
 
 
 
 async function start(date){
     const browser = await puppeteer.launch({
-        headless: false,
+        headless: true,
         defaultViewport:null
     })
     const page = await browser.newPage()
@@ -171,8 +214,20 @@ async function start(date){
 
           if(values.length > 5) values.splice(0,1);
 
-          if(values.length > 0) data.push(values);
+          
+
+          if(values.length > 0){
+            const name = values[0];
+            if(name.includes('বোরো চাল - মোটা')) {
+                values[0] = 'rice';
+                data.push([values[0],values[2]]);
+            }
+           
+            
+            }
       }
+
+      if(table.rows.length < 3) data.push([''])
 
      
 
