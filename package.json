@@ -3,15 +3,18 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "bin": "./index.js",
   "dependencies": {
     "googleapis": "^100.0.0",
     "html-table-to-json": "^1.0.0",
+    "inquirer": "^9.0.0",
     "puppeteer": "^14.1.1"
   }
 }
